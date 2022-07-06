@@ -1,5 +1,4 @@
-import { Component } from 'react';
-
+import { useLocalStorage } from './hooks/useLocalStorage';
 import Section from './Section';
 import ContactList from './ContactList';
 import Phonebook from './Phonebook';
@@ -8,28 +7,26 @@ import Filter from './Filter';
 import s from './App.module.css';
 import capitalize from 'utils/capitalize';
 
-const LOCAL_STORAGE_KEY = 'contacts';
+const LOCAL_STORAGE_KEY_CONTACTS = 'contacts';
+const LOCAL_STORAGE_KEY_FILTER = 'filter';
 const INITIAL_STATE = {
   contacts: [],
   filter: '',
 };
 
-class App extends Component {
-  state = {
-    contacts: [
-      { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-      { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-      { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-      { id: 'id-4', name: 'Annie Copeland', number: '129-21-23' },
-      { id: 'id-5', name: 'Felix Blumenfeld', number: '227-91-26' },
-      { id: 'id-6', name: 'Antonio Nepomuceno', number: '555-12-21' },
-    ],
-    filter: '',
-  };
+const App = () => {
+  const [contacts, setContacts] = useLocalStorage(
+    LOCAL_STORAGE_KEY_CONTACTS,
+    INITIAL_STATE.contacts
+  );
+  const [filter, setFilter] = useLocalStorage(
+    LOCAL_STORAGE_KEY_FILTER,
+    INITIAL_STATE.filter
+  );
 
-  addContact = newContact => {
+  const addContact = newContact => {
     let doesAlreadyExist = false;
-    this.state.contacts.forEach(({ name }) => {
+    contacts.forEach(({ name }) => {
       doesAlreadyExist = name === newContact.name;
     });
 
@@ -42,77 +39,43 @@ class App extends Component {
       return;
     }
 
-    this.setState(prevState => {
-      return { contacts: [...prevState.contacts, newContact] };
-    });
+    setContacts(prevContacts => [...prevContacts, newContact]);
   };
 
-  handleFilterInput = event => {
-    this.setState({ filter: event.target.value });
+  const handleFilterInput = event => {
+    setFilter(event.target.value);
   };
 
-  filterContacts = contacts => {
-    return this.state.filter
-      ? contacts.filter(({ name }) =>
-          name.toLowerCase().includes(this.state.filter.toLowerCase())
-        )
-      : contacts;
-  };
-
-  deleteContact = targetId => {
-    this.setState(prevState => {
-      return {
-        contacts: prevState.contacts.filter(({ id }) => id !== targetId),
-      };
-    });
-  };
-
-  handleDeleteContactBtnClick = event => {
-    this.deleteContact(event.target.dataset.id);
-  };
-
-  componentDidMount() {
-    const save = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!save) {
-      this.setState({ ...INITIAL_STATE });
-      return;
-    }
-    this.setState({ contacts: JSON.parse(save) });
-  }
-
-  componentDidUpdate() {
-    localStorage.setItem(
-      LOCAL_STORAGE_KEY,
-      JSON.stringify(this.state.contacts)
+  const filterContacts = contacts => {
+    return contacts.filter(({ name }) =>
+      name.toLowerCase().includes(filter.toLowerCase())
     );
-  }
+  };
 
-  render() {
-    const {
-      addContact,
-      handleFilterInput,
-      filterContacts,
-      handleDeleteContactBtnClick,
-    } = this;
-    const { contacts, filter } = this.state;
+  const deleteContact = targetId => {
+    setContacts(contacts.filter(({ id }) => id !== targetId));
+  };
 
-    return (
-      <div className={s.container}>
-        <div className={s.app}>
-          <Section title="Phonebook">
-            <Phonebook addContact={addContact} />
-          </Section>
-          <Section title="Contacts">
-            <Filter name={filter} inputHandler={handleFilterInput} />
-            <ContactList
-              contacts={filterContacts(contacts)}
-              deleteBtnHandler={handleDeleteContactBtnClick}
-            />
-          </Section>
-        </div>
+  const handleDeleteContactBtnClick = event => {
+    deleteContact(event.target.dataset.id);
+  };
+
+  return (
+    <div className={s.container}>
+      <div className={s.app}>
+        <Section title="Phonebook">
+          <Phonebook addContact={addContact} />
+        </Section>
+        <Section title="Contacts">
+          <Filter name={filter} inputHandler={handleFilterInput} />
+          <ContactList
+            contacts={filterContacts(contacts)}
+            deleteBtnHandler={handleDeleteContactBtnClick}
+          />
+        </Section>
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 export default App;
